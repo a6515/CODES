@@ -29,9 +29,6 @@ int dt(int n,B b[],int v)
 	return dp[n][v];
 }
 
-
-
-
 int main()
 {
    int n,v;

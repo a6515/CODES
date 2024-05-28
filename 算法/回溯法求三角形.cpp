@@ -17,7 +17,6 @@ int  is(int l,int v[],int s)
 		if(sum>remain &&dif<remain ) return 1;
 		else return 0;
 	}
-	
 	return 0;
 }
 

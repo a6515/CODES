@@ -1,98 +1,128 @@
 #include <iostream>
-#include <queue>
 #include <vector>
-#include<climits>
-using namespace std;
+#include <algorithm>
 
-// 定义边的结构体
-struct Edge
-{
-    int from, to, weight;
-};
+typedef struct bug {
+    int num;
+    int w;
+    int p;
+    double s;
+} B;
 
-// 比较函数,用于优先队列
-struct cmp
-{
-    bool operator()(const pair<int, int> &a, const pair<int, int> &b)
-    {
-        return a.first > b.first;
+typedef struct bugs {
+    int total_weight;
+    int total_value;
+    B *b;
+} BB;
+bool is(const int current_weight, const int w, int item_weight) {
+    return (current_weight + item_weight <= w);
+}
+bool com(const B& a, const B& b) {
+    return a.s > b.s;
+}
+
+// 剪枝函数：估计当前路径的最大可能价值
+bool bound(int current_weight, int current_value, int idx, int w, int N, B *b, BB *p,std::vector<B>& last,std::vector<B>& best_items) {
+    std::cout<<",进入bound函数\n";
+    if (current_weight > w) { 
+        std::cout<<"当前背包超重\n"; 
+        return false;
+    } // 超过重量限制，直接剪枝
+    else if(current_weight == w){
+        std::cout<<"背包满载\n"; 
+        best_items = last;
+        p->total_value=current_value;
+        std::cout<<"此时最大价值为:"<<current_value<<"\n";
+        return false;
     }
-};
-
-int main()
-{
-    // 图的邻接表表示
-    vector<vector<Edge>> graph = {
-        {{0, 1, 2}, {0, 2, 8}, {0, 3, 5}},
-        {{1, 2, 3}, {1, 4, 3}},
-        {{2, 5, 4}},
-        {{3, 5, 6}, {3, 6, 9}},
-        {{4, 5, 5}, {4, 6, 7}},
-        {{5, 6, 2}}};
-
-    int n = 7;                  // 结点数
-    int source = 0, target = 5; // 源点和目标点
-
-    // 初始化 D 和 S 数组
-    vector<int> D(n, INT_MAX);
-    vector<int> S(n, -1);
-    D[source] = 0;
-
-    // 优先队列,存放(距离,结点)
-    priority_queue<pair<int, int>, vector<pair<int, int>>, cmp> pq;
-    pq.push({0, source});
-
-    while (!pq.empty())
-    {
-        int u = pq.top().second;
-        pq.pop();
-
-        if (u == target)
-            break; // 找到目标点,退出
-
-        // 遍历 u 的邻居结点
-        for (const auto &edge : graph[u])
-        {
-            int v = edge.to;
-            int weight = edge.weight;
-            if (D[v] > D[u] + weight)
-            {
-                D[v] = D[u] + weight;
-                S[v] = u;
-                pq.push({D[v], v});
-            }
+    int total_weight = current_weight;
+    double total_value = current_value;
+    // 计算从 idx 到 N 的最大可能价值
+    for (int i = idx; i < N; i++) {
+        if (total_weight + b[i].w <= w) {
+            total_weight += b[i].w;
+            std::cout<<"总重量变味了"<<total_weight<<"\n";
+            total_value += b[i].p;
+        } else {
+            total_value += (w - total_weight) * b[i].s;
+            break;
         }
     }
+    std::cout<<"此时价值上界为:"<<total_value<<", 当前价值为:"<<current_value<<", 记录最大价值为:"<<p->total_value<<"\n";
+    return total_value >p->total_value;
+}
 
-    // 输出最短路径
-    cout << "最短路径: ";
-    int curr = target;
-    while (curr != -1)
-    {
-        cout << curr << " ";
-        curr = S[curr];
+
+void dfs(int idx, std::vector<B>& last, B *b, int current_weight, int current_value, int w, int N, BB *p, std::vector<B>& best_items) {
+
+    if(current_weight>w) {
+            std::cout<<"当前背包超重\n";
+            return;
     }
-    cout << endl;
-    cout << "最短路径长度: " << D[target] << endl;
+    if (idx == N) {
+        std::cout<<"编号满了\n";
+        if (current_value > p->total_value) {
+            p->total_value = current_value;
+            best_items = last;
+            std::cout<<"交互了一次\n";
+        }
+        return;
+    }
 
+    // 尝试包含 b[idx]
+    if (is(current_weight, w, b[idx].w)) {
+        last.push_back(b[idx]);
+        std::cout<<"放入了物品"<<b[idx].num<<", 当前背包重量："<<current_weight+b[idx].w<<", 当前idx:"<<idx<<"\n";
+        dfs(idx + 1, last, b, current_weight + b[idx].w, current_value + b[idx].p, w, N, p, best_items);
+        last.pop_back();
+        std::cout<<"回退了一次\n";
+    }
+
+
+    // 尝试不包含 b[idx]
+    std::cout<<"尝试不包含节点:"<<idx<<"\n";
+    if (bound(current_weight, current_value, idx + 1, w, N, b, p,last,best_items)) {
+        std::cout<<"bound函数返回真:\n";
+        dfs(idx + 1, last, b, current_weight, current_value, w, N, p, best_items);
+    }
+    std::cout<<"末尾结束\n";
+}
+
+void df(B *b, int w, int n,BB *p) {
+    std::vector<B> last;
+    std::vector<B> best_items;
+    dfs(0, last, b, 0, 0, w, n,p ,best_items);
+
+    std::cout << "最佳组合:\n";
+    for (const auto& item : best_items) {
+        std::cout << "物品编号: " << item.num << "  物品重量: " << item.w << "  物品价值: " << item.p << "\n";
+    }
+    std::cout << " 总价值: " << p->total_value << "\n";
+}
+
+int main() {
+    int w, n;
+    std::cout << "请输入背包总重量: ";
+    std::cin >> w;
+    std::cout << "请输入物品个数: ";
+    std::cin >> n;
+
+    BB *p = new BB;
+    p->total_weight = p->total_value = 0;
+    p->b = new B[n];
+
+    std::cout << "请分别输入物品的重量和价值:\n";
+    for (int i = 0; i < n; i++) {
+        std::cout << "第" << i + 1 << "个物品: ";
+        (p->b)[i].num = i;
+        std::cin >> p->b[i].w >> p->b[i].p;
+        p->b[i].s = (double)p->b[i].p / p->b[i].w;
+    }
+
+    //std::sort(p->b, p->b + n, com);
+    df(p->b, w, n,p);
+
+    delete[] p->b;
+    delete p;
     return 0;
 }
-/*
-优先队列的变化过程：
-首先，创建了一个优先队列 pq，用于存放 (距离, 结点) 的 pair 元素。
-将源点加入优先队列：pq.push({0, source})。
-在每一次迭代中，从优先队列中取出距离最小的结点 u：int u = pq.top().second，然后将其从队列中移除：pq.pop()。
-遍历结点 u 的邻居结点，根据 Dijkstra 算法的思想更新最短路径：
-如果通过结点 u 到达结点 v 的路径长度 D[v] 大于通过结点 u 的路径长度 D[u] 加上边的权重 weight，则更新 D[v] 和 S[v]，并将结点 v 加入优先队列 pq：pq.push({D[v], v})。
-推导过程：
-初始化 D 数组和 S 数组，将源点的最短路径长度 D[source] 设为 0。
-进入循环，直到优先队列为空：
-从优先队列中取出距离最小的结点 u。
-如果结点 u 是目标点，退出循环。
-遍历结点 u 的邻居结点，对于每条边 (u, v)：
-如果通过结点 u 到达结点 v 的路径长度 D[v] 大于通过结点 u 的路径长度 D[u] 加上边的权重 weight，则更新 D[v] 和 S[v]，并将结点 v 加入优先队列 pq。
-循环结束后，最短路径的长度存储在 D[target] 中，最短路径上的结点顺序存储在数组 S 中。
-最短路径及长度的输出：
-输出最短路径：从目标点开始，沿着前驱结点数组 S 逆序输出每个结点。
-输出最短路径长度：输出 D[target]。
-*/
