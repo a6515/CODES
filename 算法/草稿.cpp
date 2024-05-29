@@ -9,74 +9,56 @@ typedef struct bug {
     double s;
 } B;
 
-typedef struct bugs {
-    int total_weight;
-    int max_value;
-    B *b;
-} BB;
-
 bool com(const B& a, const B& b) {
     return a.s > b.s;
 }
 
-bool is(const int current_weight, const int w, int item_weight) {
-    return (current_weight + item_weight <= w);
+bool is(int w, int item_w, const int& W) {
+    return w + item_w <= W;
 }
 
-void dfs(int idx, std::vector<B>& last, B *b, int current_weight, int current_value, int w, int N,BB *p) {
-    
-    if (current_weight > w) return; 
-    if (idx == N && current_value>= p->max_value) {
-        std::cout << "当前组合:\n";
-        int sum=0;
-        for (const auto& item : last) {
-            std::cout << "物品编号: " << item.num << "  物品重量: " << item.w << "  物品价值: " << item.p << "\n";
-            sum+=item.p;
+void dfs(int idx, int W, int N, B b[], int last[], int* max, int w, int p, int* count) {
+    if (w > W) return;
+    if (idx == N) {
+        std::cout << "编号满了\n";
+        if (p > (*max)) {
+            *max = p;
+            std::cout << "最大值更换为:" << *max << "\n";
         }
-        p->max_value=sum;
-        std::cout << "总重量: " << current_weight << " 总价值: " << sum << "\n\n";
-        return ;
+        return;
     }
-
-
-    if (is(current_weight, w, b[idx].w)) {
-        last.push_back(b[idx]);
-        dfs(idx + 1, last, b, current_weight + b[idx].w, current_value + b[idx].p, w, N,p);
-        std::cout<<"回退\n";
-        last.pop_back();
+    if (is(w, b[idx].w, W)) {
+        last[*count] = b[idx].num;
+        (*count)++;
+        std::cout << "当前idx为:" << idx;
+        std::cout << " 放入物品:" << b[idx].num;
+        std::cout << ",  当前背包容量为:" << w + b[idx].w << "\n";
+        dfs(idx + 1, W, N, b, last, max, w + b[idx].w, p + b[idx].p, count);
+        std::cout << "即将回溯\n";
+        (*count)--;
+        last[*count] = -1;
     }
-
-    dfs(idx + 1, last, b, current_weight, current_value, w, N,p);
+    std::cout << "物品" << b[idx].num << "放不下了\n";
+    dfs(idx + 1, W, N, b, last, max, w, p, count);
 }
-
-void df(B *b, int w, int n,BB *p) {
-    std::vector<B> last;
-    dfs(0, last, b, 0, 0, w, n,p);
-}
-
 
 int main() {
-    int w, n;
+    int w, n, max = 0, count = 0;
     std::cout << "请输入背包总重量: ";
     std::cin >> w;
     std::cout << "请输入物品个数: ";
     std::cin >> n;
-    BB *p = new BB;
-    p->total_weight = p->max_value = 0;
-    p->b = new B[n];
-    
+    B b[n];
+    int last[n];
+    for (int i = 0; i < n; i++) last[i] = -1;
     std::cout << "请分别输入物品的重量和价值:\n";
     for (int i = 0; i < n; i++) {
-        std::cout << "第" << i + 1 << "个物品: ";
-        (p->b)[i].num = i;
-        std::cin >> p->b[i].w >> p->b[i].p;
-        p->b[i].s = (double)p->b[i].p / p->b[i].w;
+        std::cout << "第" << i << "个物品: ";
+        b[i].num = i;
+        std::cin >> b[i].w >> b[i].p;
+        b[i].s = (double)b[i].p / b[i].w;
     }
-
-    std::sort(p->b, p->b + n, com);
-    df(p->b, w, n,p);
-
-    delete[] p->b;
-    delete p;
-    return 0;
+    std::sort(b, b + n, com);
+    dfs(0, w, n, b, last, &max, 0, 0, &count);
+    std::cout << "最大价值为:" << max;
 }
