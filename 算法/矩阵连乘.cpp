@@ -1,7 +1,7 @@
 #include<iostream>
 void traceback(int i, int j, int s[][100]) {
     if (i == j) {
-        std::cout << "A" << i+1 ;
+        std::cout << "A" << i ;
     } else {
         std::cout << "(";
         traceback(i, s[i][j], s);
@@ -40,7 +40,7 @@ void mc(int p[],int n)
 
 int main()
 {
-	int p[]={10,20,25,15,5,10,25};
+	int p[]={5,10,15,8,20};
 	int len = sizeof(p)/sizeof(p[0]);
 	mc(p,len-1);
 	
